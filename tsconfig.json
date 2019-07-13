@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "lib": ["es2015", "es5", "es6", "esnext"],
+      "target": "esnext",
+      "noImplicitAny": true,
+      "moduleResolution": "node",
+      "inlineSourceMap": true,
+      "rootDirs": ["__tests__", "src"],
+      "outDir": "build"
+    },
+    "exclude": [
+      "node_modules"
+    ]
+  }
+  
