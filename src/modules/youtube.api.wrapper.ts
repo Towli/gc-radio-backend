@@ -31,7 +31,7 @@ export function getYoutubeVideoURL(query: string) {
   };
 
   return makeRequest(YOUTUBE_SEARCH_API_BASE, Method.Get, options).then(res => {
-    return `https://youtube.com/watch?v=${res.data.items[0].id.videoId}`;
+    return `https://youtube.com/embed/${res.data.items[0].id.videoId}`;
   });
 }
 
