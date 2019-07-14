@@ -1,6 +1,7 @@
 import * as fastify from 'fastify';
 import * as cors from 'fastify-cors';
 import * as http from 'http';
+import * as socketio from 'socket.io';
 
 import * as search from './modules/youtube.api.wrapper';
 
@@ -11,6 +12,15 @@ config();
 const PORT = process.env.PORT;
 
 const server = fastify<http.Server>({ logger: true });
+
+const io = socketio.listen(process.env.PORT);
+
+io.on('connect', socket => {
+  console.log('[client connected] - socket_id: ', socket.id);
+  socket.on('message', message => {
+    console.log('[message received]: ', message);
+  });
+});
 
 server.register(cors, {
   origin: true
