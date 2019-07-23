@@ -31,7 +31,12 @@ export function init() {
 }
 
 export namespace List {
-  export function push(list: string, value: string, order?: Order) {
+  // type this...
+  export function push(
+    list: string,
+    value: string,
+    order?: Order
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (order) {
         if (order === Order.Left) {
@@ -42,6 +47,21 @@ export namespace List {
       } else {
         client.lpush(list, value, handleResult);
       }
+
+      function handleResult(
+        error: Error,
+        response: number | string | string[]
+      ) {
+        if (error) {
+          return reject(error);
+        }
+
+        if (!response) {
+          console.log('todo: handle no response case');
+        }
+
+        resolve(response);
+      }
     });
   }
 
@@ -49,19 +69,49 @@ export namespace List {
     return new Promise((resolve, reject) => {
       if (order) {
         if (order === Order.Left) {
-          client.lpop(list);
+          client.lpop(list, handleResult);
         } else if (order === Order.Right) {
-          client.rpop(list);
+          client.rpop(list, handleResult);
         }
       } else {
-        client.lpop(list);
+        client.rpop(list, handleResult);
+      }
+
+      function handleResult(
+        error: Error,
+        response: number | string | string[]
+      ) {
+        if (error) {
+          return reject(error);
+        }
+
+        if (!response) {
+          console.log('todo: handle no response case');
+        }
+
+        resolve(response);
       }
     });
   }
 
-  export function getAllFromList(list: string) {
+  export function getAllFromList(list: string): Promise<string[]> {
     return new Promise((resolve, reject) => {
       client.lrange(list, 0, -1, handleResult);
+
+      function handleResult(
+        error: Error,
+        response: number | string | string[]
+      ) {
+        if (error) {
+          return reject(error);
+        }
+
+        if (!response) {
+          console.log('todo: handle no response case');
+        }
+
+        resolve(response as string[]);
+      }
     });
   }
 }
