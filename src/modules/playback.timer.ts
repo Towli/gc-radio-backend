@@ -12,6 +12,7 @@ export default class Timer {
     this._nanotimer = new Nanotimer();
     this._duration = duration;
     this._trackingInterval = trackingInterval;
+    this._currentSecond = 0;
   }
 
   public get duration(): number {
@@ -19,6 +20,7 @@ export default class Timer {
   }
 
   public get currentSecond(): number {
+    console.log('getting currentSecond: ', this._currentSecond);
     return this._currentSecond;
   }
 

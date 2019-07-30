@@ -38,10 +38,14 @@ export function getYoutubeVideo(query: string) {
 
   return makeRequest(`${YOUTUBE_API_BASE}/search`, Method.Get, options).then(
     res => {
-      const id = res.data.items[0].id.videoId;
+      const item = res.data.items[0];
+      const id = item.id.videoId;
+
       return getDuration(id).then(duration => {
         return {
+          title: item.snippet.title,
           embedUrl: `https://youtube.com/embed/${id}`,
+          thumbnail: item.snippet.thumbnails.medium,
           duration: duration
         };
       });

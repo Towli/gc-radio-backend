@@ -45,7 +45,7 @@ export namespace List {
           client.rpush(list, value, handleResult);
         }
       } else {
-        client.lpush(list, value, handleResult);
+        client.rpush(list, value, handleResult);
       }
 
       function handleResult(

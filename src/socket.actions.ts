@@ -14,13 +14,16 @@ enum ACTIONS {
   PLAYLIST_REMOVE = 'playlist_remove',
   PLAYLIST_FETCH = 'playlist_fetch',
   PLAYBACK_STARTED = 'playback_started',
-  PLAYBACK_ENDED = 'playback_ended'
+  PLAYBACK_ENDED = 'playback_ended',
+  PLAYBACK_FETCH = 'playback_fetch'
 }
 
 interface IPlaylistItem {
   url: string;
   duration: number;
 }
+
+let timer: Timer;
 
 // so the idea is to start a timer to run for the duration of
 // the video, pop from playlist from redis at the end of the duration,
@@ -45,6 +48,20 @@ export async function init(server: any) {
       });
     });
 
+    socket.on(ACTIONS.PLAYBACK_FETCH, async () => {
+      const currentPlayback = JSON.parse(
+        (await redis.List.getAllFromList('playlist'))[0]
+      );
+      const currentTime = timer.currentSecond;
+
+      console.log('currentPlayback: ', currentPlayback);
+      console.log('currentTime: ', currentTime);
+      socket.emit(ACTIONS.PLAYBACK_FETCH, {
+        currentPlayback,
+        currentTime
+      });
+    });
+
     socket.on(ACTIONS.PLAYLIST_ADD, async (item: IPlaylistItem) => {
       console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${item}`);
 
@@ -64,7 +81,7 @@ export async function init(server: any) {
     });
 
     socket.on(ACTIONS.PLAYLIST_FETCH, async playlist => {
-      console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${playlist}`);
+      console.log(`[${ACTIONS.PLAYLIST_FETCH}]: ${JSON.stringify(playlist)}`);
       const currentPlaylist = await redis.List.getAllFromList('playlist');
       socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     });
@@ -76,7 +93,7 @@ export async function init(server: any) {
   }
 
   async function startPlayback(socket, item) {
-    let timer = new Timer(item.duration);
+    timer = new Timer(item.duration);
     timer.start(async () => {
       await removeItem(socket);
     });
