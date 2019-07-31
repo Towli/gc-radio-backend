@@ -1,6 +1,3 @@
-// https://www.youtube.com/watch?v=q6EoRBvdVPQ
-// https://www.youtube.com/watch?v=Yxdog3vifQc
-
 import * as socketio from 'socket.io';
 
 import Timer from './modules/playback.timer';
@@ -13,14 +10,17 @@ enum ACTIONS {
   PLAYLIST_ADD = 'playlist_add',
   PLAYLIST_REMOVE = 'playlist_remove',
   PLAYLIST_FETCH = 'playlist_fetch',
+  PLAYLIST_CHANGE = 'playlist_change',
   PLAYBACK_STARTED = 'playback_started',
   PLAYBACK_ENDED = 'playback_ended',
   PLAYBACK_FETCH = 'playback_fetch'
 }
 
+// update type, currently just wrong
 interface IPlaylistItem {
   url: string;
   duration: number;
+  happened_at: number;
 }
 
 let timer: Timer;
@@ -54,8 +54,6 @@ export async function init(server: any) {
       );
       const currentTime = timer.currentSecond;
 
-      console.log('currentPlayback: ', currentPlayback);
-      console.log('currentTime: ', currentTime);
       socket.emit(ACTIONS.PLAYBACK_FETCH, {
         currentPlayback,
         currentTime
@@ -64,20 +62,28 @@ export async function init(server: any) {
 
     socket.on(ACTIONS.PLAYLIST_ADD, async (item: IPlaylistItem) => {
       console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${item}`);
-
+      const value = { ...item, happenedAt: Date.now() };
+      console.log(value);
       const currentPlaylistSize: any = await redis.List.push(
         'playlist',
-        JSON.stringify(item)
+        JSON.stringify(value)
       );
+
+      const currentPlaylist = await redis.List.getAllFromList('playlist');
+      socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
 
       if (currentPlaylistSize < 2) {
         await startPlayback(socket, item);
       }
     });
 
-    socket.on(ACTIONS.PLAYLIST_REMOVE, async item => {
-      console.log(`[${ACTIONS.PLAYLIST_REMOVE}]: ${item}`);
-      await redis.List.pop('playlist');
+    socket.on(ACTIONS.PLAYLIST_REMOVE, async index => {
+      console.log(`[${ACTIONS.PLAYLIST_REMOVE}]: ${index}`);
+      const itemValue = await redis.List.getValueByIndex('playlist', index);
+      console.log(`[${ACTIONS.PLAYLIST_REMOVE}]: ${itemValue}`);
+      await redis.List.removeByValue('playlist', itemValue as string);
+      const currentPlaylist = await redis.List.getAllFromList('playlist');
+      socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     });
 
     socket.on(ACTIONS.PLAYLIST_FETCH, async playlist => {

@@ -65,6 +65,48 @@ export namespace List {
     });
   }
 
+  export function getValueByIndex(list: string, index: number) {
+    return new Promise((resolve, reject) => {
+      client.lindex(list, index, handleResult);
+
+      function handleResult(
+        error: Error,
+        response: number | string | string[]
+      ) {
+        if (error) {
+          return reject(error);
+        }
+
+        if (!response) {
+          console.log('todo: handle no response case');
+        }
+
+        resolve(response);
+      }
+    });
+  }
+
+  export function removeByValue(list: string, value: string) {
+    return new Promise((resolve, reject) => {
+      client.lrem(list, 1, value, handleResult);
+
+      function handleResult(
+        error: Error,
+        response: number | string | string[]
+      ) {
+        if (error) {
+          return reject(error);
+        }
+
+        if (!response) {
+          console.log('todo: handle no response case');
+        }
+
+        resolve(response);
+      }
+    });
+  }
+
   export function pop(list: string, order?: Order) {
     return new Promise((resolve, reject) => {
       if (order) {
