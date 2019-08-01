@@ -1,3 +1,11 @@
+// HIGH PRIO BUGS:
+/**
+ * 1. removing song doesn't trigger a correct refetch
+ * 2. opening modal resets playback to 00:00 ???
+ * 3. timer needs to work if server restarts etc
+ */
+
+
 import * as socketio from 'socket.io';
 
 import Timer from './modules/playback.timer';
@@ -73,17 +81,13 @@ export async function init(server: any) {
       socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
 
       if (currentPlaylistSize < 2) {
-        await startPlayback(socket, item);
+        await startPlayback(item);
       }
     });
 
     socket.on(ACTIONS.PLAYLIST_REMOVE, async index => {
       console.log(`[${ACTIONS.PLAYLIST_REMOVE}]: ${index}`);
-      const itemValue = await redis.List.getValueByIndex('playlist', index);
-      console.log(`[${ACTIONS.PLAYLIST_REMOVE}]: ${itemValue}`);
-      await redis.List.removeByValue('playlist', itemValue as string);
-      const currentPlaylist = await redis.List.getAllFromList('playlist');
-      socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
+      removeItemByIndex(index);
     });
 
     socket.on(ACTIONS.PLAYLIST_FETCH, async playlist => {
@@ -93,25 +97,36 @@ export async function init(server: any) {
     });
   });
 
-  async function removeItem(socket) {
-    await redis.List.pop('playlist');
-    await handlePlaybackEnded(socket);
+  async function removeItemByIndex(index) {
+    const itemValue = await redis.List.getValueByIndex('playlist', index);
+    await redis.List.removeByValue('playlist', itemValue as string);
+    const currentPlaylist = await redis.List.getAllFromList('playlist');
+    io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
+    if (index < 1) {
+      await handlePlaybackEnded();
+    }
   }
 
-  async function startPlayback(socket, item) {
+  async function removeItem() {
+    await redis.List.pop('playlist');
+    await handlePlaybackEnded();
+  }
+
+  async function startPlayback(item) {
+    console.log('startPlayback');
     timer = new Timer(item.duration);
     timer.start(async () => {
-      await removeItem(socket);
+      await removeItem();
     });
     io.sockets.emit(ACTIONS.PLAYBACK_STARTED, item);
   }
 
-  async function handlePlaybackEnded(socket) {
+  async function handlePlaybackEnded() {
     console.log(`[${ACTIONS.PLAYBACK_ENDED}]`);
     const currentPlaylist = await redis.List.getAllFromList('playlist');
     console.log('currentPlaylist: ', currentPlaylist);
     if (currentPlaylist.length > 0) {
-      startPlayback(socket, JSON.parse(currentPlaylist[0]));
+      startPlayback(JSON.parse(currentPlaylist[0]));
     }
   }
 }

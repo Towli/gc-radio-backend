@@ -40,70 +40,35 @@ export namespace List {
     return new Promise((resolve, reject) => {
       if (order) {
         if (order === Order.Left) {
-          client.lpush(list, value, handleResult);
+          client.lpush(list, value, (error, response) => {
+            handleResult(error, response, resolve, reject);
+          });
         } else if (order === Order.Right) {
-          client.rpush(list, value, handleResult);
+          client.rpush(list, value, (error, response) => {
+            handleResult(error, response, resolve, reject);
+          });
         }
       } else {
-        client.rpush(list, value, handleResult);
-      }
-
-      function handleResult(
-        error: Error,
-        response: number | string | string[]
-      ) {
-        if (error) {
-          return reject(error);
-        }
-
-        if (!response) {
-          console.log('todo: handle no response case');
-        }
-
-        resolve(response);
+        client.rpush(list, value, (error, response) => {
+          handleResult(error, response, resolve, reject);
+        });
       }
     });
   }
 
   export function getValueByIndex(list: string, index: number) {
     return new Promise((resolve, reject) => {
-      client.lindex(list, index, handleResult);
-
-      function handleResult(
-        error: Error,
-        response: number | string | string[]
-      ) {
-        if (error) {
-          return reject(error);
-        }
-
-        if (!response) {
-          console.log('todo: handle no response case');
-        }
-
-        resolve(response);
-      }
+      client.lindex(list, index, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
     });
   }
 
   export function removeByValue(list: string, value: string) {
     return new Promise((resolve, reject) => {
-      client.lrem(list, 1, value, handleResult);
-
-      function handleResult(
-        error: Error,
-        response: number | string | string[]
-      ) {
-        if (error) {
-          return reject(error);
-        }
-
-        if (!response) {
-          console.log('todo: handle no response case');
-        }
-
-        resolve(response);
-      }
+      client.lrem(list, 1, value, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
     });
   }
 
@@ -111,49 +76,25 @@ export namespace List {
     return new Promise((resolve, reject) => {
       if (order) {
         if (order === Order.Left) {
-          client.lpop(list, handleResult);
+          client.lpop(list, (error, response) => {
+            handleResult(error, response, resolve, reject);
+          });
         } else if (order === Order.Right) {
-          client.rpop(list, handleResult);
+          client.rpop(list, (error, response) => {
+            handleResult(error, response, resolve, reject);
+          });
         }
       } else {
-        client.rpop(list, handleResult);
-      }
-
-      function handleResult(
-        error: Error,
-        response: number | string | string[]
-      ) {
-        if (error) {
-          return reject(error);
-        }
-
-        if (!response) {
-          console.log('todo: handle no response case');
-        }
-
-        resolve(response);
+        client.rpop(list, () => {});
       }
     });
   }
 
   export function getAllFromList(list: string): Promise<string[]> {
     return new Promise((resolve, reject) => {
-      client.lrange(list, 0, -1, handleResult);
-
-      function handleResult(
-        error: Error,
-        response: number | string | string[]
-      ) {
-        if (error) {
-          return reject(error);
-        }
-
-        if (!response) {
-          console.log('todo: handle no response case');
-        }
-
-        resolve(response as string[]);
-      }
+      client.lrange(list, 0, -1, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
     });
   }
 }
@@ -166,23 +107,30 @@ export function quit() {
   client.quit();
 }
 
-function handleResult(error: Error, response: number | string | string[]) {
+/**
+ * Promisified wrapper for setting a string key/value pair
+ */
+export function set(key: string, value: string) {
+  return new Promise((resolve, reject) => {
+    client.set('string key', 'string val', (error, response) => {
+      handleResult(error, response, resolve, reject);
+    });
+  });
+}
+
+function handleResult(
+  error: Error,
+  response: number | string | string[],
+  resolve,
+  reject
+) {
   if (error) {
-    return Promise.reject(error);
+    return reject(error);
   }
 
   if (!response) {
     console.log('todo: handle no response case');
   }
 
-  Promise.resolve(response);
-}
-
-/**
- * Promisified wrapper for setting a string key/value pair
- */
-export function set(key: string, value: string) {
-  return new Promise((resolve, reject) => {
-    client.set('string key', 'string val', handleResult);
-  });
+  resolve(response);
 }
