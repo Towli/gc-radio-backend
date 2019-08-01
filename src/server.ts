@@ -33,7 +33,7 @@ server.get('/search', {}, async (request, reply) => {
 
 const start = async () => {
   try {
-    await server.listen(PORT);
+    await server.listen(PORT as string);
     server.log.info(`server listening on ${PORT}`);
   } catch (error) {
     server.log.error(error);
