@@ -9,8 +9,6 @@ import { config } from 'dotenv';
 
 config();
 
-const PORT = process.env.PORT || 3001;
-
 const server = fastify<http.Server>({ logger: true });
 
 server.register(cors, {
@@ -33,8 +31,8 @@ server.get('/search', {}, async (request, reply) => {
 
 const start = async () => {
   try {
-    await server.listen(PORT as string);
-    server.log.info(`server listening on ${PORT}`);
+    await server.listen(process.env.PORT as any, '0.0.0.0');
+    server.log.info(`server listening on ${process.env.PORT}`);
   } catch (error) {
     server.log.error(error);
     process.exit(1);

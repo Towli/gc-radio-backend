@@ -4,8 +4,7 @@ import { config } from 'dotenv';
 
 config();
 
-const REDIS_HOST: string = process.env.WS_PORT;
-const REDIS_PORT: number = <number>(<unknown>process.env.WS_PORT); //ts conversion hack
+const REDIS_URL: string = process.env.REDIS_URL;
 
 let client: redis.RedisClient;
 
@@ -16,7 +15,7 @@ enum Order {
 
 export function init() {
   return new Promise((resolve, reject) => {
-    client = redis.createClient(REDIS_PORT, REDIS_HOST);
+    client = redis.createClient(REDIS_URL);
 
     client.on('connect', function() {
       console.log('[redis client]: connected');
