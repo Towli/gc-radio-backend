@@ -84,7 +84,9 @@ export namespace List {
           });
         }
       } else {
-        client.rpop(list, () => {});
+        client.lpop(list, (error, response) => {
+          handleResult(error, response, resolve, reject);
+        });
       }
     });
   }
@@ -96,10 +98,6 @@ export namespace List {
       });
     });
   }
-}
-
-export function hset() {
-  client.hset('hash key', 'hashtest 1', 'some value', redis.print);
 }
 
 export function quit() {

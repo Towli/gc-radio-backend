@@ -24,6 +24,10 @@ export default class Timer {
     return this._currentSecond;
   }
 
+  public set duration(duration: number) {
+    this._duration = duration;
+  }
+
   // type callback
   start(callback?: any) {
     this._endCallback = callback || null;
@@ -37,13 +41,25 @@ export default class Timer {
       [this._nanotimer],
       this.convertMsToNanotimerSeconds(this._duration)
     );
+    console.log(
+      'timer duration: ',
+      this.convertMsToNanotimerSeconds(this._duration)
+    );
   }
 
   end = (timer: any) => {
+    console.log('timer end');
     timer.clearInterval();
     this._currentSecond = 0;
     this._endCallback && this._endCallback();
   };
+
+  reset() {
+    console.log('timer reset');
+    this._nanotimer && this._nanotimer.clearInterval();
+    this._nanotimer && this._nanotimer.clearTimeout();
+    this._currentSecond = 0;
+  }
 
   track = () => {
     this._currentSecond = ++this._currentSecond;

@@ -1,10 +1,12 @@
 // HIGH PRIO BUGS:
 /**
- * 1. removing song doesn't trigger a correct refetch
- * 2. opening modal resets playback to 00:00 ???
- * 3. timer needs to work if server restarts etc
+ * 1. timer needs to work if server restarts etc
+ * 2. timer seems to get wildly out of sync from clients
+ * 3. general playlist weirdness
+ * 4. in some cases timer doesn't start, and/or playback_started event isn't emitted to clients
+ * 5. queue weirdness where adding a new item replaces a current
+ * 6. (frontend) consecutive duplicate songs don't update playback component
  */
-
 
 import * as socketio from 'socket.io';
 
@@ -31,7 +33,7 @@ interface IPlaylistItem {
   happened_at: number;
 }
 
-let timer: Timer;
+let timer: Timer = null;
 
 // so the idea is to start a timer to run for the duration of
 // the video, pop from playlist from redis at the end of the duration,
@@ -78,7 +80,7 @@ export async function init(server: any) {
       );
 
       const currentPlaylist = await redis.List.getAllFromList('playlist');
-      socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
+      io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
 
       if (currentPlaylistSize < 2) {
         await startPlayback(item);
@@ -99,6 +101,7 @@ export async function init(server: any) {
 
   async function removeItemByIndex(index) {
     const itemValue = await redis.List.getValueByIndex('playlist', index);
+    console.log('removing item of value: ', itemValue);
     await redis.List.removeByValue('playlist', itemValue as string);
     const currentPlaylist = await redis.List.getAllFromList('playlist');
     io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
@@ -108,15 +111,23 @@ export async function init(server: any) {
   }
 
   async function removeItem() {
+    console.log('removeItem()');
     await redis.List.pop('playlist');
+    console.log('popped from list');
     await handlePlaybackEnded();
   }
 
   async function startPlayback(item) {
-    console.log('startPlayback');
-    timer = new Timer(item.duration);
-    timer.start(async () => {
-      await removeItem();
+    console.log('startPlayback with item: ', item);
+    if (!timer) {
+      timer = new Timer(item.duration);
+    }
+
+    timer.reset();
+    timer.duration = item.duration;
+    timer.start(() => {
+      console.log('timer.start callback..');
+      removeItem();
     });
     io.sockets.emit(ACTIONS.PLAYBACK_STARTED, item);
   }
@@ -124,9 +135,13 @@ export async function init(server: any) {
   async function handlePlaybackEnded() {
     console.log(`[${ACTIONS.PLAYBACK_ENDED}]`);
     const currentPlaylist = await redis.List.getAllFromList('playlist');
+    io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     console.log('currentPlaylist: ', currentPlaylist);
     if (currentPlaylist.length > 0) {
       startPlayback(JSON.parse(currentPlaylist[0]));
+    } else {
+      console.log('emitting ', ACTIONS.PLAYBACK_ENDED);
+      io.sockets.emit(ACTIONS.PLAYBACK_ENDED, null); // playback ended, null means nothing else queued
     }
   }
 }
