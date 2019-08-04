@@ -1,11 +1,9 @@
 // HIGH PRIO BUGS:
 /**
  * 1. timer needs to work if server restarts etc
- * 2. timer seems to get wildly out of sync from clients
- * 3. general playlist weirdness
- * 4. in some cases timer doesn't start, and/or playback_started event isn't emitted to clients
- * 5. queue weirdness where adding a new item replaces a current
- * 6. (frontend) consecutive duplicate songs don't update playback component
+ * 2. general playlist weirdness
+ * 3. queue weirdness where adding a new item replaces a current
+ * 4. (frontend) consecutive duplicate songs don't update playback component
  */
 
 import * as socketio from 'socket.io';

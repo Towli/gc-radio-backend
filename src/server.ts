@@ -9,6 +9,11 @@ import { config } from 'dotenv';
 
 config();
 
+enum QueryType {
+  Keyword = 'keyword',
+  Id = 'id'
+}
+
 const server = fastify<http.Server>({ logger: true });
 
 server.register(cors, {
@@ -21,8 +26,19 @@ server.get('/health-check', {}, (request, reply) => {
 
 server.get('/search', {}, async (request, reply) => {
   const query = request.query.q;
+  const queryType: QueryType = request.query.type;
+
+  console.log(request.query);
+
+  let result;
+
   try {
-    const result = await search.getYoutubeVideo(query);
+    if (queryType === QueryType.Id) {
+      result = await search.getYoutubeVideoById(query);
+    } else {
+      result = await search.getYoutubeVideoByKeyword(query);
+    }
+
     reply.code(200).send(result);
   } catch (error) {
     console.log(error);

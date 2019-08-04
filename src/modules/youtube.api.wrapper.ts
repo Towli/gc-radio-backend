@@ -18,7 +18,9 @@ interface IYoutubeSearchOptions {
 interface IYoutubeVideoOptions {
   id: string;
   part: string;
-  key: string;
+  maxResults?: number;
+  type?: string;
+  key?: string;
 }
 
 enum Method {
@@ -27,30 +29,35 @@ enum Method {
   Delete = 'delete'
 }
 
-export function getYoutubeVideo(query: string) {
-  const options: IYoutubeSearchOptions = {
-    q: query,
-    maxResults: 1,
-    part: 'snippet',
-    type: 'video',
-    key: YOUTUBE_API_KEY
-  };
+enum YoutubeAPIEndpoint {
+  Search = 'search',
+  Videos = 'videos'
+}
 
-  return makeRequest(`${YOUTUBE_API_BASE}/search`, Method.Get, options).then(
-    res => {
-      const item = res.data.items[0];
-      const id = item.id.videoId;
+export function getYoutubeVideoByKeyword(query: string) {
+  return getSnippet(query).then(result => {
+    return getDuration(result.id.videoId).then(duration => {
+      return {
+        title: result.snippet.title,
+        embedUrl: `https://youtube.com/embed/${result.id.videoId}`,
+        thumbnail: result.snippet.thumbnails.medium,
+        duration: duration
+      };
+    });
+  });
+}
 
-      return getDuration(id).then(duration => {
-        return {
-          title: item.snippet.title,
-          embedUrl: `https://youtube.com/embed/${id}`,
-          thumbnail: item.snippet.thumbnails.medium,
-          duration: duration
-        };
-      });
-    }
-  );
+export function getYoutubeVideoById(id: string) {
+  return getSnippetById(id).then(result => {
+    return getDuration(id).then(duration => {
+      return {
+        title: result.snippet.title,
+        embedUrl: `https://youtube.com/embed/${id}`,
+        thumbnail: result.snippet.thumbnails.medium,
+        duration: duration
+      };
+    });
+  });
 }
 
 /**
@@ -63,14 +70,52 @@ function getDuration(videoId: string): Promise<number | null> {
     part: 'contentDetails',
     key: YOUTUBE_API_KEY
   };
-  return makeRequest(`${YOUTUBE_API_BASE}/videos`, Method.Get, options).then(
-    res => {
-      const duration = res.data.items[0]
-        ? res.data.items[0].contentDetails.duration
-        : null;
-      return convertISO8601DurationToMs(duration);
-    }
-  );
+  return makeRequest(
+    `${YOUTUBE_API_BASE}/${YoutubeAPIEndpoint.Videos}`,
+    Method.Get,
+    options
+  ).then(res => {
+    const duration = res.data.items[0]
+      ? res.data.items[0].contentDetails.duration
+      : null;
+    return convertISO8601DurationToMs(duration);
+  });
+}
+
+function getSnippet(query: string): Promise<any> {
+  const options: IYoutubeSearchOptions = {
+    q: query,
+    maxResults: 1,
+    part: 'snippet',
+    type: 'video',
+    key: YOUTUBE_API_KEY
+  };
+
+  return makeRequest(
+    `${YOUTUBE_API_BASE}/${YoutubeAPIEndpoint.Search}`,
+    Method.Get,
+    options
+  ).then(res => {
+    return res.data.items[0] || null;
+  });
+}
+
+function getSnippetById(videoId: string): Promise<any> {
+  const options: IYoutubeVideoOptions = {
+    id: videoId,
+    maxResults: 1,
+    part: 'snippet',
+    type: 'video',
+    key: YOUTUBE_API_KEY
+  };
+
+  return makeRequest(
+    `${YOUTUBE_API_BASE}/${YoutubeAPIEndpoint.Videos}`,
+    Method.Get,
+    options
+  ).then(res => {
+    return res.data.items[0] || null;
+  });
 }
 
 function makeRequest(
