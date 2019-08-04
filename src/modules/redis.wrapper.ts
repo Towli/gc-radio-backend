@@ -29,6 +29,24 @@ export function init() {
   });
 }
 
+export namespace Cache {
+  export function set(hash, data, ttl = 86400) {
+    return new Promise((resolve, reject) => {
+      client.set(hash, data, 'EX', ttl, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+
+  export function get(hash: string): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      client.get(hash, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+}
+
 export namespace List {
   // type this...
   export function push(

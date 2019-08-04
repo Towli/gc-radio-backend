@@ -5,6 +5,9 @@ import * as http from 'http';
 import * as search from './modules/youtube.api.wrapper';
 import * as sockets from './socket.actions';
 
+import * as hashUtils from './modules/hash.utils';
+import * as redis from './modules/redis.wrapper';
+
 import { config } from 'dotenv';
 
 config();
@@ -25,10 +28,18 @@ server.get('/health-check', {}, (request, reply) => {
 });
 
 server.get('/search', {}, async (request, reply) => {
+  console.log(request.query);
+
   const query = request.query.q;
   const queryType: QueryType = request.query.type;
 
-  console.log(request.query);
+  const hash = hashUtils.hashObject(JSON.stringify({ query, queryType }));
+
+  const cachedResult = await redis.Cache.get(hash);
+
+  if (cachedResult) {
+    return reply.code(200).send(JSON.parse(cachedResult));
+  }
 
   let result;
 
@@ -39,7 +50,9 @@ server.get('/search', {}, async (request, reply) => {
       result = await search.getYoutubeVideoByKeyword(query);
     }
 
-    reply.code(200).send(result);
+    await redis.Cache.set(hash, JSON.stringify(result));
+
+    reply.code(200).send(JSON.stringify(result));
   } catch (error) {
     console.log(error);
   }
