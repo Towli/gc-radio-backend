@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 config();
 
 const REDIS_URL: string = process.env.REDIS_URL;
+const ONE_WEEK_IN_SECONDS = 604800;
 
 let client: redis.RedisClient;
 
@@ -30,7 +31,7 @@ export function init() {
 }
 
 export namespace Cache {
-  export function set(hash, data, ttl = 86400) {
+  export function set(hash, data, ttl = ONE_WEEK_IN_SECONDS) {
     return new Promise((resolve, reject) => {
       client.set(hash, data, 'EX', ttl, (error, response) => {
         handleResult(error, response, resolve, reject);

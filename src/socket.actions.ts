@@ -24,6 +24,11 @@ enum ACTIONS {
   PLAYBACK_FETCH = 'playback_fetch'
 }
 
+enum REDIS_RESOURCES {
+  PLAYLIST = 'playlist',
+  HISTORY = 'history'
+}
+
 // update type, currently just wrong
 interface IPlaylistItem {
   url: string;
@@ -58,7 +63,7 @@ export async function init(server: any) {
 
     socket.on(ACTIONS.PLAYBACK_FETCH, async () => {
       const currentPlayback = JSON.parse(
-        (await redis.List.getAllFromList('playlist'))[0]
+        (await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST))[0]
       );
       const currentTime = timer.currentSecond;
 
@@ -73,11 +78,13 @@ export async function init(server: any) {
       const value = { ...item, happenedAt: Date.now() };
       console.log(value);
       const currentPlaylistSize: any = await redis.List.push(
-        'playlist',
+        REDIS_RESOURCES.PLAYLIST,
         JSON.stringify(value)
       );
 
-      const currentPlaylist = await redis.List.getAllFromList('playlist');
+      const currentPlaylist = await redis.List.getAllFromList(
+        REDIS_RESOURCES.PLAYLIST
+      );
       io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
 
       if (currentPlaylistSize < 2) {
@@ -92,16 +99,26 @@ export async function init(server: any) {
 
     socket.on(ACTIONS.PLAYLIST_FETCH, async playlist => {
       console.log(`[${ACTIONS.PLAYLIST_FETCH}]: ${JSON.stringify(playlist)}`);
-      const currentPlaylist = await redis.List.getAllFromList('playlist');
+      const currentPlaylist = await redis.List.getAllFromList(
+        REDIS_RESOURCES.PLAYLIST
+      );
       socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     });
   });
 
   async function removeItemByIndex(index) {
-    const itemValue = await redis.List.getValueByIndex('playlist', index);
+    const itemValue = await redis.List.getValueByIndex(
+      REDIS_RESOURCES.PLAYLIST,
+      index
+    );
     console.log('removing item of value: ', itemValue);
-    await redis.List.removeByValue('playlist', itemValue as string);
-    const currentPlaylist = await redis.List.getAllFromList('playlist');
+    await redis.List.removeByValue(
+      REDIS_RESOURCES.PLAYLIST,
+      itemValue as string
+    );
+    const currentPlaylist = await redis.List.getAllFromList(
+      REDIS_RESOURCES.PLAYLIST
+    );
     io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     if (index < 1) {
       await handlePlaybackEnded();
@@ -110,7 +127,7 @@ export async function init(server: any) {
 
   async function removeItem() {
     console.log('removeItem()');
-    await redis.List.pop('playlist');
+    await redis.List.pop(REDIS_RESOURCES.PLAYLIST);
     console.log('popped from list');
     await handlePlaybackEnded();
   }
@@ -132,7 +149,9 @@ export async function init(server: any) {
 
   async function handlePlaybackEnded() {
     console.log(`[${ACTIONS.PLAYBACK_ENDED}]`);
-    const currentPlaylist = await redis.List.getAllFromList('playlist');
+    const currentPlaylist = await redis.List.getAllFromList(
+      REDIS_RESOURCES.PLAYLIST
+    );
     io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
     console.log('currentPlaylist: ', currentPlaylist);
     if (currentPlaylist.length > 0) {
