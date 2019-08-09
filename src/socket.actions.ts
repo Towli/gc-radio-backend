@@ -21,7 +21,8 @@ enum ACTIONS {
   PLAYLIST_CHANGE = 'playlist_change',
   PLAYBACK_STARTED = 'playback_started',
   PLAYBACK_ENDED = 'playback_ended',
-  PLAYBACK_FETCH = 'playback_fetch'
+  PLAYBACK_FETCH = 'playback_fetch',
+  HISTORY_FETCH = 'history_fetch'
 }
 
 enum REDIS_RESOURCES {
@@ -33,7 +34,7 @@ enum REDIS_RESOURCES {
 interface IPlaylistItem {
   url: string;
   duration: number;
-  happened_at: number;
+  happenedAt: number;
 }
 
 let timer: Timer = null;
@@ -73,13 +74,13 @@ export async function init(server: any) {
       });
     });
 
-    socket.on(ACTIONS.PLAYLIST_ADD, async (item: IPlaylistItem) => {
+    socket.on(ACTIONS.PLAYLIST_ADD, async item => {
       console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${item}`);
-      const value = { ...item, happenedAt: Date.now() };
-      console.log(value);
+      item = JSON.parse(item);
+      item.happenedAt = Date.now();
       const currentPlaylistSize: any = await redis.List.push(
         REDIS_RESOURCES.PLAYLIST,
-        JSON.stringify(value)
+        JSON.stringify(item)
       );
 
       const currentPlaylist = await redis.List.getAllFromList(
@@ -103,6 +104,12 @@ export async function init(server: any) {
         REDIS_RESOURCES.PLAYLIST
       );
       socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist);
+    });
+
+    socket.on(ACTIONS.HISTORY_FETCH, async () => {
+      console.log(`[${ACTIONS.HISTORY_FETCH}]`);
+      const currentHistory = await redis.Set.getAll(REDIS_RESOURCES.HISTORY);
+      socket.emit(ACTIONS.HISTORY_FETCH, currentHistory);
     });
   });
 
@@ -144,6 +151,9 @@ export async function init(server: any) {
       console.log('timer.start callback..');
       removeItem();
     });
+
+    addToHistory(item);
+
     io.sockets.emit(ACTIONS.PLAYBACK_STARTED, item);
   }
 
@@ -160,5 +170,17 @@ export async function init(server: any) {
       console.log('emitting ', ACTIONS.PLAYBACK_ENDED);
       io.sockets.emit(ACTIONS.PLAYBACK_ENDED, null); // playback ended, null means nothing else queued
     }
+  }
+
+  function addToHistory(item) {
+    if (item.happenedAt) {
+      item.happenedAt = undefined;
+    }
+
+    return redis.Set.add(
+      REDIS_RESOURCES.HISTORY,
+      Date.now(),
+      JSON.stringify(item)
+    );
   }
 }

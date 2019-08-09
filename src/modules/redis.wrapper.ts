@@ -48,6 +48,24 @@ export namespace Cache {
   }
 }
 
+export namespace Set {
+  export function add(set, score, value) {
+    return new Promise((resolve, reject) => {
+      client.zadd(set, score, value, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+
+  export function getAll(set) {
+    return new Promise((resolve, reject) => {
+      client.zrevrange(set, 0, -1, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+}
+
 export namespace List {
   // type this...
   export function push(
@@ -128,7 +146,7 @@ export function quit() {
  */
 export function set(key: string, value: string) {
   return new Promise((resolve, reject) => {
-    client.set('string key', 'string val', (error, response) => {
+    client.set(key, value, (error, response) => {
       handleResult(error, response, resolve, reject);
     });
   });
