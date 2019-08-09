@@ -22,19 +22,14 @@ enum ACTIONS {
   PLAYBACK_STARTED = 'playback_started',
   PLAYBACK_ENDED = 'playback_ended',
   PLAYBACK_FETCH = 'playback_fetch',
-  HISTORY_FETCH = 'history_fetch'
+  HISTORY_FETCH = 'history_fetch',
+  USERS_FETCH = 'users_fetch'
 }
 
 enum REDIS_RESOURCES {
   PLAYLIST = 'playlist',
-  HISTORY = 'history'
-}
-
-// update type, currently just wrong
-interface IPlaylistItem {
-  url: string;
-  duration: number;
-  happenedAt: number;
+  HISTORY = 'history',
+  USERS = 'users'
 }
 
 let timer: Timer = null;
@@ -56,10 +51,22 @@ export async function init(server: any) {
   io.on('connect', socket => {
     console.log('[client connected] - socket_id: ', socket.id);
 
-    socket.on(ACTIONS.LOGIN, () => {
-      redis.set('users', socket.id).catch(error => {
-        console.log(error);
-      });
+    socket.on(ACTIONS.LOGIN, async () => {
+      await redis.List.push('users', socket.id);
+      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS);
+      io.sockets.emit(ACTIONS.USERS_FETCH, users);
+    });
+
+    socket.on('disconnect', async () => {
+      console.log('[client disconnected] - socket_id: ', socket.id);
+      await redis.List.removeByValue('users', socket.id);
+      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS);
+      io.sockets.emit(ACTIONS.USERS_FETCH, users);
+    });
+
+    socket.on(ACTIONS.USERS_FETCH, async () => {
+      const users = redis.List.getAllFromList(REDIS_RESOURCES.USERS);
+      socket.emit(ACTIONS.USERS_FETCH, users);
     });
 
     socket.on(ACTIONS.PLAYBACK_FETCH, async () => {
