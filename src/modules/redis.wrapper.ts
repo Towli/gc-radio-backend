@@ -48,7 +48,25 @@ export namespace Cache {
   }
 }
 
-export namespace Set {
+export namespace Users {
+  export function set(key, value) {
+    return new Promise((resolve, reject) => {
+      client.set(key, value, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+
+  export function get(key: string): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      client.get(key, (error, response) => {
+        handleResult(error, response, resolve, reject);
+      });
+    });
+  }
+}
+
+export namespace SortedSet {
   export function add(set, score, value) {
     return new Promise((resolve, reject) => {
       client.zadd(set, score, value, (error, response) => {
@@ -147,6 +165,14 @@ export function quit() {
 export function set(key: string, value: string) {
   return new Promise((resolve, reject) => {
     client.set(key, value, (error, response) => {
+      handleResult(error, response, resolve, reject);
+    });
+  });
+}
+
+export function del(resource): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    client.del(resource, (error, response) => {
       handleResult(error, response, resolve, reject);
     });
   });

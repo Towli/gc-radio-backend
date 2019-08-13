@@ -1,9 +1,9 @@
 // HIGH PRIO BUGS:
 /**
  * 1. timer needs to work if server restarts etc
- * 2. general playlist weirdness
- * 3. queue weirdness where adding a new item replaces a current
- * 4. (frontend) consecutive duplicate songs don't update playback component
+ * 2. queue weirdness where adding a new item replaces a current
+ * 3. (frontend) consecutive duplicate songs don't update playback component
+ * 4. graceful exit to remove sockets from redis on restart
  */
 
 import * as socketio from 'socket.io';
@@ -11,6 +11,8 @@ import * as socketio from 'socket.io';
 import Timer from './modules/playback.timer';
 
 import * as redis from './modules/redis.wrapper';
+
+import * as hashUtils from './modules/hash.utils';
 
 enum ACTIONS {
   LOGIN = 'login',
@@ -32,6 +34,16 @@ enum REDIS_RESOURCES {
   USERS = 'users'
 }
 
+interface ExtendedSocket extends socketio.Socket {
+  username: string;
+}
+
+interface User {
+  username: string;
+  password: string;
+  created_at: Date;
+}
+
 let timer: Timer = null;
 
 // so the idea is to start a timer to run for the duration of
@@ -47,6 +59,7 @@ export async function init(server: any) {
   const io = socketio.listen(server.server);
 
   await redis.init();
+  await flushUsers();
 
   io.on('connect', socket => {
     console.log('[client connected] - socket_id: ', socket.id);
@@ -62,6 +75,14 @@ export async function init(server: any) {
       await redis.List.removeByValue('users', socket.id);
       const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS);
       io.sockets.emit(ACTIONS.USERS_FETCH, users);
+    });
+
+    socket.on('authenticate', async (username, password) => {
+      const authenticated = await authenticate(username, password);
+      if (authenticated) {
+        (socket as ExtendedSocket).username = username;
+      }
+      socket.emit('');
     });
 
     socket.on(ACTIONS.USERS_FETCH, async () => {
@@ -115,7 +136,9 @@ export async function init(server: any) {
 
     socket.on(ACTIONS.HISTORY_FETCH, async () => {
       console.log(`[${ACTIONS.HISTORY_FETCH}]`);
-      const currentHistory = await redis.Set.getAll(REDIS_RESOURCES.HISTORY);
+      const currentHistory = await redis.SortedSet.getAll(
+        REDIS_RESOURCES.HISTORY
+      );
       socket.emit(ACTIONS.HISTORY_FETCH, currentHistory);
     });
   });
@@ -184,10 +207,29 @@ export async function init(server: any) {
       item.happenedAt = undefined;
     }
 
-    return redis.Set.add(
+    return redis.SortedSet.add(
       REDIS_RESOURCES.HISTORY,
       Date.now(),
       JSON.stringify(item)
     );
+  }
+
+  async function authenticate(username, password) {
+    const hashedPassword = hashUtils.hashObject(password);
+
+    return redis.Users.get(username).then(userString => {
+      const userFromDB: User = JSON.parse(userString);
+      if (!userFromDB) {
+        return false;
+      }
+
+      if (userFromDB.password && userFromDB.password === hashedPassword) {
+        return true;
+      }
+    });
+  }
+
+  async function flushUsers() {
+    await redis.del(REDIS_RESOURCES.USERS);
   }
 }
