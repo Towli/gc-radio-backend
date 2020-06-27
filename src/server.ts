@@ -8,6 +8,8 @@ import * as sockets from './socket.actions'
 import * as hashUtils from './modules/hash.utils'
 import * as redis from './modules/redis.wrapper'
 
+import initExitHandler from './modules/graceful.exit'
+
 import { config } from 'dotenv'
 
 config()
@@ -62,6 +64,7 @@ const start = async () => {
   try {
     await server.listen(process.env.PORT)
     server.log.info(`server listening on ${process.env.PORT}`)
+    initExitHandler(server.server)
   } catch (error) {
     server.log.error(error)
     process.exit(1)

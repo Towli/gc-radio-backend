@@ -132,6 +132,14 @@ export namespace List {
       })
     })
   }
+
+  export function deleteAllFromList(list: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      client.del(list, (error, response) => {
+        handleResult(error, response, resolve, reject)
+      })
+    })
+  }
 }
 
 export function quit() {
