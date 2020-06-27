@@ -1,9 +1,7 @@
-// HIGH PRIO BUGS:
 /**
- * 1. timer needs to work if server restarts etc
- * 2. general playlist weirdness
- * 3. queue weirdness where adding a new item replaces a current
- * 4. (frontend) consecutive duplicate songs don't update playback component
+ * todo ~
+ * 1. make timer work on server restart
+ * 2. thoroughly test durations (hour+ durations fail i think)
  */
 
 import * as socketio from 'socket.io'
@@ -13,6 +11,8 @@ import Timer from './modules/playback.timer'
 import * as redis from './modules/redis.wrapper'
 
 enum ACTIONS {
+  CONNECT = 'connect',
+  DISCONNECT = 'disconnect',
   LOGIN = 'login',
   LOGOUT = 'logout',
   PLAYLIST_ADD = 'playlist_add',
@@ -48,48 +48,54 @@ export async function init(server: any) {
 
   await redis.init()
 
-  io.on('connect', (socket) => {
-    console.log('[client connected] - socket_id: ', socket.id)
+  io.on(ACTIONS.CONNECT, (socket) => {
+    console.log(`[${ACTIONS.CONNECT}]: socket_id - ${socket.id}`)
 
-    socket.on(ACTIONS.LOGIN, async () => {
-      await redis.List.push('users', socket.id)
-      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
-      io.sockets.emit(ACTIONS.USERS_FETCH, users)
-    })
-
-    socket.on('disconnect', async () => {
-      console.log('[client disconnected] - socket_id: ', socket.id)
-      await redis.List.removeByValue('users', socket.id)
-      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
-      io.sockets.emit(ACTIONS.USERS_FETCH, users)
-    })
-
-    socket.on(ACTIONS.USERS_FETCH, async () => {
-      const users = redis.List.getAllFromList(REDIS_RESOURCES.USERS)
-      socket.emit(ACTIONS.USERS_FETCH, users)
+    socket.on(ACTIONS.DISCONNECT, async () => {
+      try {
+        console.log(`[${ACTIONS.DISCONNECT}]: socket_id - ${socket.id}`)
+        await redis.List.removeByValue('users', socket.id)
+        const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
+        io.sockets.emit(ACTIONS.USERS_FETCH, users)
+      } catch (error) {
+        console.log(error)
+      }
     })
 
     socket.on(ACTIONS.PLAYBACK_FETCH, async () => {
-      const currentPlayback = JSON.parse((await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST))[0])
-      const currentTime = timer.currentSecond
+      try {
+        console.log(`[${ACTIONS.PLAYBACK_FETCH}]`)
 
-      socket.emit(ACTIONS.PLAYBACK_FETCH, {
-        currentPlayback,
-        currentTime,
-      })
+        const playlist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
+        const currentPlayback = playlist.length > 0 && JSON.parse(playlist[0])
+        const currentTime = timer.currentSecond
+
+        socket.emit(ACTIONS.PLAYBACK_FETCH, {
+          currentPlayback,
+          currentTime,
+        })
+      } catch (error) {
+        console.log(error)
+      }
     })
 
     socket.on(ACTIONS.PLAYLIST_ADD, async (item) => {
-      console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${item}`)
-      item = JSON.parse(item)
-      item.happenedAt = Date.now()
-      const currentPlaylistSize: any = await redis.List.push(REDIS_RESOURCES.PLAYLIST, JSON.stringify(item))
+      try {
+        console.log(`[${ACTIONS.PLAYLIST_ADD}]: ${item}`)
 
-      const currentPlaylist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
-      io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist)
+        item = JSON.parse(item)
+        item.happenedAt = Date.now()
 
-      if (currentPlaylistSize < 2) {
-        await startPlayback(item)
+        const currentPlaylistSize: number = await redis.List.push(REDIS_RESOURCES.PLAYLIST, JSON.stringify(item))
+        const currentPlaylist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
+
+        io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist)
+
+        if (currentPlaylistSize < 2) {
+          await startPlayback(item)
+        }
+      } catch (error) {
+        console.log(error)
       }
     })
 
@@ -98,8 +104,8 @@ export async function init(server: any) {
       removeItemByIndex(index)
     })
 
-    socket.on(ACTIONS.PLAYLIST_FETCH, async (playlist) => {
-      console.log(`[${ACTIONS.PLAYLIST_FETCH}]: ${JSON.stringify(playlist)}`)
+    socket.on(ACTIONS.PLAYLIST_FETCH, async () => {
+      console.log(`[${ACTIONS.PLAYLIST_FETCH}]`)
       const currentPlaylist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
       socket.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist)
     })
@@ -109,28 +115,41 @@ export async function init(server: any) {
       const currentHistory = await redis.Set.getAll(REDIS_RESOURCES.HISTORY)
       socket.emit(ACTIONS.HISTORY_FETCH, currentHistory)
     })
+
+    socket.on(ACTIONS.USERS_FETCH, async () => {
+      console.log(`[${ACTIONS.USERS_FETCH}]`)
+      const users = redis.List.getAllFromList(REDIS_RESOURCES.USERS)
+      socket.emit(ACTIONS.USERS_FETCH, users)
+    })
+
+    socket.on(ACTIONS.LOGIN, async () => {
+      console.log(`[${ACTIONS.LOGIN}]`)
+      await redis.List.push('users', socket.id)
+      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
+      io.sockets.emit(ACTIONS.USERS_FETCH, users)
+    })
   })
 
   async function removeItemByIndex(index) {
     const itemValue = await redis.List.getValueByIndex(REDIS_RESOURCES.PLAYLIST, index)
-    console.log('removing item of value: ', itemValue)
     await redis.List.removeByValue(REDIS_RESOURCES.PLAYLIST, itemValue as string)
+
     const currentPlaylist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
     io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist)
+
     if (index < 1) {
       await handlePlaybackEnded()
     }
   }
 
   async function removeItem() {
-    console.log('removeItem()')
     await redis.List.pop(REDIS_RESOURCES.PLAYLIST)
-    console.log('popped from list')
     await handlePlaybackEnded()
   }
 
   async function startPlayback(item) {
-    console.log('startPlayback with item: ', item)
+    console.log('starting with item: ', item)
+
     if (!timer) {
       timer = new Timer(item.duration)
     }
@@ -148,23 +167,17 @@ export async function init(server: any) {
   }
 
   async function handlePlaybackEnded() {
-    console.log(`[${ACTIONS.PLAYBACK_ENDED}]`)
     const currentPlaylist = await redis.List.getAllFromList(REDIS_RESOURCES.PLAYLIST)
     io.sockets.emit(ACTIONS.PLAYLIST_FETCH, currentPlaylist)
-    console.log('currentPlaylist: ', currentPlaylist)
+
     if (currentPlaylist.length > 0) {
       startPlayback(JSON.parse(currentPlaylist[0]))
     } else {
-      console.log('emitting ', ACTIONS.PLAYBACK_ENDED)
       io.sockets.emit(ACTIONS.PLAYBACK_ENDED, null) // playback ended, null means nothing else queued
     }
   }
 
   function addToHistory(item) {
-    if (item.happenedAt) {
-      item.happenedAt = undefined
-    }
-
     return redis.Set.add(REDIS_RESOURCES.HISTORY, Date.now(), JSON.stringify(item))
   }
 }

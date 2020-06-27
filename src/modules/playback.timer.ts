@@ -43,15 +43,15 @@ export default class Timer {
     this._endCallback && this._endCallback()
   }
 
+  track = () => {
+    this._currentSecond = ++this._currentSecond
+  }
+
   reset() {
     console.log('timer reset')
     this._nanotimer && this._nanotimer.clearInterval()
     this._nanotimer && this._nanotimer.clearTimeout()
     this._currentSecond = 0
-  }
-
-  track = () => {
-    this._currentSecond = ++this._currentSecond
   }
 
   private convertMsToNanotimerSeconds(ms: number) {

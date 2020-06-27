@@ -7,6 +7,8 @@ config()
 const YOUTUBE_API_BASE = process.env.YOUTUBE_API_BASE
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
 
+const YOUTUBE_EMBED_ENDPOINT = 'https://youtube.com/embed'
+
 interface IYoutubeSearchOptions {
   q: string
   maxResults: number
@@ -39,7 +41,7 @@ export function getYoutubeVideoByKeyword(query: string) {
     return getDuration(result.id.videoId).then((duration) => {
       return {
         title: result.snippet.title,
-        embedUrl: `https://youtube.com/embed/${result.id.videoId}`,
+        embedUrl: `${YOUTUBE_EMBED_ENDPOINT}/${result.id.videoId}`,
         thumbnail: result.snippet.thumbnails.medium,
         duration: duration,
       }
@@ -52,7 +54,7 @@ export function getYoutubeVideoById(id: string) {
     return getDuration(id).then((duration) => {
       return {
         title: result.snippet.title,
-        embedUrl: `https://youtube.com/embed/${id}`,
+        embedUrl: `${YOUTUBE_EMBED_ENDPOINT}/${id}`,
         thumbnail: result.snippet.thumbnails.medium,
         duration: duration,
       }

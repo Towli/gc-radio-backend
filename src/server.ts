@@ -60,7 +60,7 @@ server.get('/search', {}, async (request, reply) => {
 
 const start = async () => {
   try {
-    await server.listen(process.env.PORT as any, '0.0.0.0')
+    await server.listen(process.env.PORT)
     server.log.info(`server listening on ${process.env.PORT}`)
   } catch (error) {
     server.log.error(error)

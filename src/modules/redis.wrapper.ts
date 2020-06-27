@@ -68,6 +68,7 @@ export namespace Set {
 
 export namespace List {
   // type this...
+  // review: can't push methods return the actual list?
   export function push(list: string, value: string, order?: Order): Promise<any> {
     return new Promise((resolve, reject) => {
       if (order) {
