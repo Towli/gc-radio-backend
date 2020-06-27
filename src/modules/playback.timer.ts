@@ -20,7 +20,6 @@ export default class Timer {
   }
 
   public get currentSecond(): number {
-    console.log('getting currentSecond: ', this._currentSecond)
     return this._currentSecond
   }
 
@@ -33,11 +32,9 @@ export default class Timer {
     this._endCallback = callback || null
     this._nanotimer.setInterval(this.track, '', this.convertMsToNanotimerSeconds(this._trackingInterval))
     this._nanotimer.setTimeout(this.end, [this._nanotimer], this.convertMsToNanotimerSeconds(this._duration))
-    console.log('timer duration: ', this.convertMsToNanotimerSeconds(this._duration))
   }
 
   end = (timer: any) => {
-    console.log('timer end')
     timer.clearInterval()
     this._currentSecond = 0
     this._endCallback && this._endCallback()
@@ -48,7 +45,6 @@ export default class Timer {
   }
 
   reset() {
-    console.log('timer reset')
     this._nanotimer && this._nanotimer.clearInterval()
     this._nanotimer && this._nanotimer.clearTimeout()
     this._currentSecond = 0

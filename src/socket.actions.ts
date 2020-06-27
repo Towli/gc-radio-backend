@@ -9,7 +9,15 @@ import * as socketio from 'socket.io'
 import Timer from './modules/playback.timer'
 
 import * as redis from './modules/redis.wrapper'
-import { ACTIONS, REDIS_RESOURCES } from './types/socket'
+
+import { ACTIONS, REDIS_RESOURCES, User } from './types/socket'
+
+import * as hashUtils from './modules/hash.utils'
+import { flushConnections } from './modules/exit.helpers'
+
+interface ExtendedSocket extends socketio.Socket {
+  username: string
+}
 
 let timer: Timer = null
 
@@ -26,6 +34,7 @@ export async function init(server: any) {
   const io = socketio.listen(server.server)
 
   await redis.init()
+  await flushConnections()
 
   io.on(ACTIONS.CONNECT, (socket) => {
     console.log(`[${ACTIONS.CONNECT}]: socket_id - ${socket.id}`)
@@ -39,6 +48,28 @@ export async function init(server: any) {
       } catch (error) {
         console.log(error)
       }
+    })
+
+    socket.on(ACTIONS.LOGIN, async () => {
+      console.log(`[${ACTIONS.LOGIN}]`)
+      await redis.List.push('users', socket.id)
+      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
+      io.sockets.emit(ACTIONS.USERS_FETCH, users)
+    })
+
+    socket.on(ACTIONS.AUTHENTICATE, async (username, password) => {
+      console.log(`[${ACTIONS.AUTHENTICATE}]`)
+      const authenticated = await authenticate(username, password)
+      if (authenticated) {
+        ;(socket as ExtendedSocket).username = username
+      }
+      socket.emit('')
+    })
+
+    socket.on(ACTIONS.USERS_FETCH, async () => {
+      console.log(`[${ACTIONS.USERS_FETCH}]`)
+      const users = redis.List.getAllFromList(REDIS_RESOURCES.USERS)
+      socket.emit(ACTIONS.USERS_FETCH, users)
     })
 
     socket.on(ACTIONS.PLAYBACK_FETCH, async () => {
@@ -91,21 +122,8 @@ export async function init(server: any) {
 
     socket.on(ACTIONS.HISTORY_FETCH, async () => {
       console.log(`[${ACTIONS.HISTORY_FETCH}]`)
-      const currentHistory = await redis.Set.getAll(REDIS_RESOURCES.HISTORY)
+      const currentHistory = await redis.SortedSet.getAll(REDIS_RESOURCES.HISTORY)
       socket.emit(ACTIONS.HISTORY_FETCH, currentHistory)
-    })
-
-    socket.on(ACTIONS.USERS_FETCH, async () => {
-      console.log(`[${ACTIONS.USERS_FETCH}]`)
-      const users = redis.List.getAllFromList(REDIS_RESOURCES.USERS)
-      socket.emit(ACTIONS.USERS_FETCH, users)
-    })
-
-    socket.on(ACTIONS.LOGIN, async () => {
-      console.log(`[${ACTIONS.LOGIN}]`)
-      await redis.List.push('users', socket.id)
-      const users = await redis.List.getAllFromList(REDIS_RESOURCES.USERS)
-      io.sockets.emit(ACTIONS.USERS_FETCH, users)
     })
   })
 
@@ -127,8 +145,6 @@ export async function init(server: any) {
   }
 
   async function startPlayback(item) {
-    console.log('starting with item: ', item)
-
     if (!timer) {
       timer = new Timer(item.duration)
     }
@@ -160,6 +176,22 @@ export async function init(server: any) {
 
   function addToHistory(item) {
     item.happenedAt && delete item.happenedAt
-    return redis.Set.add(REDIS_RESOURCES.HISTORY, Date.now(), JSON.stringify(item))
+
+    return redis.SortedSet.add(REDIS_RESOURCES.HISTORY, Date.now(), JSON.stringify(item))
+  }
+
+  async function authenticate(username, password) {
+    const hashedPassword = hashUtils.hashObject(password)
+
+    return redis.Users.get(username).then((userString) => {
+      const userFromDB: User = JSON.parse(userString)
+      if (!userFromDB) {
+        return false
+      }
+
+      if (userFromDB.password && userFromDB.password === hashedPassword) {
+        return true
+      }
+    })
   }
 }

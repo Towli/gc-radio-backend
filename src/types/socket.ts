@@ -1,4 +1,5 @@
 export enum ACTIONS {
+  AUTHENTICATE = 'authenticate',
   CONNECT = 'connect',
   DISCONNECT = 'disconnect',
   LOGIN = 'login',
@@ -18,4 +19,10 @@ export enum REDIS_RESOURCES {
   PLAYLIST = 'playlist',
   HISTORY = 'history',
   USERS = 'users',
+}
+
+export interface User {
+  username: string;
+  password: string;
+  created_at: Date;
 }
