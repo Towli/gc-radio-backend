@@ -22,7 +22,7 @@ jobs:
         run: docker build -t local-image -f ./Dockerfile .
       - name: tag docker images
         run: |
-          docker tag local-image 'towli/radio-backend:${GITHUB_SHA::8}'
+          docker tag local-image towli/radio-backend:${GITHUB_SHA::8}
       - name: push image to ecr
         uses: kciter/aws-ecr-action@v1
         with:
@@ -39,6 +39,7 @@ jobs:
       matrix:
         node-version: [10.x]
     steps:
+      - uses: actions/checkout@v1
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v1
         with:
