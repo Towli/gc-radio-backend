@@ -29,9 +29,9 @@ jobs:
           access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-          repo: docker/radio-backend
+          repo: radio-backend
           region: us-east-1
-          tags: latest,${GITHUB_SHA::8}
+          tags: latest
           create_repo: true
   cdk:
     runs-on: ubuntu-latest
