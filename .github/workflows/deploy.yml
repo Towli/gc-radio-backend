@@ -34,6 +34,7 @@ jobs:
           tags: latest
           create_repo: true
   cdk:
+    needs:  build
     runs-on: ubuntu-latest
     strategy:
       matrix:
