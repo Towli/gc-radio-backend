@@ -3,9 +3,7 @@ import * as ecs from '@aws-cdk/aws-ecs'
 import * as ecr from '@aws-cdk/aws-ecr'
 
 export interface ICdkStackProps extends cdk.StackProps {
-  containerName: string
-  containerTag: string
-  environment: string
+  ecrRepositoryName: string
 }
 
 export class DeployStack extends cdk.Stack {
@@ -24,15 +22,15 @@ export class DeployStack extends cdk.Stack {
       cpu: 256,
     })
 
-    const repository = new ecr.Repository(this, 'radio-backend', {
-      repositoryName: 'radio-backend',
+    const repository = new ecr.Repository(this, props.ecrRepositoryName, {
+      repositoryName: props.ecrRepositoryName,
     })
 
     /**
      * NB: The first lifecycle rule that matches an image will be applied
      * against that image.
      */
-    repository.addLifecycleRule({ maxImageCount: 10 })
+    repository.addLifecycleRule({ maxImageCount: 3 })
     repository.addLifecycleRule({ maxImageAge: cdk.Duration.days(3) })
 
     taskDef.addContainer('appContainer', {

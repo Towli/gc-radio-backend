@@ -9,7 +9,5 @@ const stackName = process.env.STACK_NAME || ''
 const app = new cdk.App()
 
 new DeployStack(app, stackName, {
-  containerName: process.env.CONTAINER_NAME || '',
-  containerTag: process.env.CONTAINER_TAG || '',
-  environment: process.env.ENVIRONMENT || '',
+  ecrRepositoryName: process.env.ECR_REPOSITORY_NAME || '',
 })
