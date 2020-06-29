@@ -30,7 +30,7 @@ export class DeployStack extends cdk.Stack {
      * NB: The first lifecycle rule that matches an image will be applied
      * against that image.
      */
-    repository.addLifecycleRule({ maxImageCount: 3 })
+    repository.addLifecycleRule({ tagPrefixList: ['latest'], maxImageCount: 3 })
     repository.addLifecycleRule({ maxImageAge: cdk.Duration.days(3) })
 
     taskDef.addContainer('appContainer', {
