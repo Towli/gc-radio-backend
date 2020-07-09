@@ -62,6 +62,23 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STACK_NAME: 'radio-backend-stack'
+          ECR_REPOSITORY_NAME: 'radio-backend'
+
+      - name: cdk synth
+        uses: youyo/aws-cdk-github-actions@v1
+        with:
+          cdk_subcommand: 'synth'
+          cdk_version: '1.16.2'
+          debug_log: true
+          working_dir: './deploy'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STACK_NAME: 'radio-backend-stack'
+          ECR_REPOSITORY_NAME: 'radio-backend'
 
       - name: cdk deploy
         uses: youyo/aws-cdk-github-actions@v1
@@ -76,17 +93,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: cdk synth
-        uses: youyo/aws-cdk-github-actions@v1
-        with:
-          cdk_subcommand: 'synth'
-          cdk_version: '1.16.2'
-          debug_log: true
-          working_dir: './deploy'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STACK_NAME: 'radio-backend-stack'
+          ECR_REPOSITORY_NAME: 'radio-backend'
 
