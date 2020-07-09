@@ -84,7 +84,7 @@ jobs:
         uses: youyo/aws-cdk-github-actions@master
         with:
           cdk_subcommand: 'deploy'
-          cdk_version: '1.17.1'
+          cdk_version: '1.47.0'
           actions_comment: false
           args: '--require-approval never'
         env:
