@@ -84,7 +84,6 @@ jobs:
         uses: youyo/aws-cdk-github-actions@master
         with:
           cdk_subcommand: 'deploy'
-          cdk_stack: 'radio-backend-stack'
           cdk_version: '1.17.1'
           actions_comment: false
           args: '--require-approval never'
