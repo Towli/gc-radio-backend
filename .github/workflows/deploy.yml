@@ -84,9 +84,9 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v1
         with:
           cdk_subcommand: 'deploy'
+          cdk_stack: 'radio-backend-stack'
           actions_comment: false
           args: '--require-approval never'
-          debug_log: true
           working_dir: './deploy'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
