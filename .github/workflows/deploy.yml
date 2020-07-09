@@ -81,13 +81,13 @@ jobs:
           ECR_REPOSITORY_NAME: 'radio-backend'
 
       - name: cdk deploy
-        uses: youyo/aws-cdk-github-actions@v1
+        uses: youyo/aws-cdk-github-actions@master
         with:
           cdk_subcommand: 'deploy'
           cdk_stack: 'radio-backend-stack'
+          cdk_version: '1.17.1'
           actions_comment: false
           args: '--require-approval never'
-          working_dir: './deploy'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -95,4 +95,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STACK_NAME: 'radio-backend-stack'
           ECR_REPOSITORY_NAME: 'radio-backend'
-

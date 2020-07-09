@@ -6,8 +6,6 @@ require('dotenv').config()
 
 const stackName = process.env.STACK_NAME || ''
 
-console.log('env: ', process.env)
-
 const app = new cdk.App()
 
 new DeployStack(app, stackName, {
