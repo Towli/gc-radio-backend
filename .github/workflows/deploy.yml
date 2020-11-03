@@ -54,7 +54,7 @@ jobs:
           working-directory: ./deploy
           run: |
             npm install
-            npm run cdk deploy
+            npm run deploy:no-approval
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
