@@ -4,10 +4,10 @@ import * as cdk from '@aws-cdk/core'
 import { DeployStack } from '../lib/deploy-stack'
 require('dotenv').config()
 
-const stackName = process.env.STACK_NAME || ''
+const stackName = process.env.STACK_NAME || 'radio-backend-stack'
 
 const app = new cdk.App()
 
 new DeployStack(app, stackName, {
-  ecrRepositoryName: process.env.ECR_REPOSITORY_NAME || '',
+  ecrRepositoryName: process.env.ECR_REPOSITORY_NAME || 'radio-backend',
 })
