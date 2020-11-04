@@ -3,6 +3,8 @@ import * as ecs from '@aws-cdk/aws-ecs'
 import * as ecr from '@aws-cdk/aws-ecr'
 import * as ec2 from '@aws-cdk/aws-ec2'
 import * as ecs_patterns from '@aws-cdk/aws-ecs-patterns'
+import { ContainerImage } from '@aws-cdk/aws-ecs'
+import { Repository } from '@aws-cdk/aws-ecr'
 
 export interface ICdkStackProps extends cdk.StackProps {
   ecrRepositoryName: string
@@ -30,15 +32,11 @@ export class DeployStack extends cdk.Stack {
      */
     const ecrRepositoryName = `${props.ecrRepositoryName}`
 
-    const repository = new ecr.Repository(this, ecrRepositoryName, {
-      repositoryName: ecrRepositoryName,
-    })
+    // get respoitory
+    const repository = Repository.fromRepositoryName(this, 'radio-backend', ecrRepositoryName)
 
-    /**
-     * NB: The first lifecycle rule that matches an image will be applied
-     * against that image.
-     */
-    repository.addLifecycleRule({ tagPrefixList: ['latest'], maxImageCount: 3 })
+    // build task image with repository
+    const taskImage = ContainerImage.fromEcrRepository(repository)
 
     // Create a load-balanced Fargate service and make it public
     new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'radio-backend-service', {
@@ -46,7 +44,7 @@ export class DeployStack extends cdk.Stack {
       cpu: 256, // Default is 256
       desiredCount: 1, // Default is 1
       taskImageOptions: {
-        image: ecs.ContainerImage.fromEcrRepository(repository),
+        image: taskImage,
         enableLogging: true,
         logDriver: logDriver,
       },
