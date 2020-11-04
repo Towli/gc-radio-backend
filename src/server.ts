@@ -1,5 +1,6 @@
 import * as fastify from 'fastify'
 import * as cors from 'fastify-cors'
+import * as helmet from 'fastify-helmet'
 import * as http from 'http'
 
 import * as search from './modules/youtube.api.wrapper'
@@ -21,9 +22,8 @@ enum QueryType {
 
 const server = fastify<http.Server>({ logger: true })
 
-server.register(cors, {
-  origin: true,
-})
+server.register(cors, { origin: true })
+server.register(helmet)
 
 server.get('/health-check', {}, (request, reply) => {
   reply.code(200).send({ response: 'OK' })
